@@ -9,4 +9,9 @@
       <description>Demo Layer that marks all points that were ever one meter in front of the robot</description>
     </class>
   </library>
+  <library path="lib/libradiation_costmap_layer_plugin">
+    <class type="simple_layer_namespace::SimpleShape" base_class_type="costmap_2d::Layer">
+      <description>hardcode a shape with costs</description>
+    </class>
+  </library>
 </class_libraries>
