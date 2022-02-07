@@ -4,6 +4,8 @@
 PLUGINLIB_EXPORT_CLASS(simple_layer_namespace::SimpleShape, costmap_2d::Layer)
 
 using costmap_2d::LETHAL_OBSTACLE;
+using costmap_2d::NO_INFORMATION;
+using costmap_2d::FREE_SPACE;
 
 namespace simple_layer_namespace
 {
@@ -16,6 +18,7 @@ void SimpleShape::onInitialize()
   current_ = true;
 
   master = layered_costmap_->getCostmap();
+  matchSize();
 
   dsrv_ = new dynamic_reconfigure::Server<costmap_2d::GenericPluginConfig>(nh);
   dynamic_reconfigure::Server<costmap_2d::GenericPluginConfig>::CallbackType cb = boost::bind(
@@ -23,6 +26,13 @@ void SimpleShape::onInitialize()
   dsrv_->setCallback(cb);
 }
 
+void SimpleShape::matchSize()
+{
+  size_x = master->getSizeInCellsX();
+  size_y = master->getSizeInCellsY();
+  resizeMap(size_x, size_y, master->getResolution(),
+            master->getOriginX(), master->getOriginY());
+}
 
 void SimpleShape::reconfigureCB(costmap_2d::GenericPluginConfig &config, uint32_t level)
 {
@@ -44,7 +54,7 @@ void SimpleShape::updateBounds(double robot_x, double robot_y, double robot_yaw,
   //*max_y = std::max(*max_y, mark_y_);
   printf("max %d %d\n", master->getSizeInCellsX(), master->getSizeInCellsY());
   mapToWorld(0, 0, *min_x, *min_y);
-  mapToWorld(master->getSizeInCellsX(), master->getSizeInCellsY(), *max_x, *max_y);
+  mapToWorld(size_x, size_y, *max_x, *max_y);
   printf("bounds %f %f %f %f\n", *min_x, *max_x, *min_y, *max_y);
 }
 
@@ -54,23 +64,26 @@ void SimpleShape::updateCosts(costmap_2d::Costmap2D& master_grid, int min_i, int
   if (!enabled_)
     return;
 
-  unsigned int mx;
-  unsigned int my;
-  double point_x = 0.0;
-  double point_y = 0.0;
-  if(master_grid.worldToMap(point_x, point_y, mx, my)){
-    //printf("set here");
-    master_grid.setCost(mx, my, 200);
-  }
+  //unsigned int mx;
+  //unsigned int my;
+  //double point_x = 0.0;
+  //double point_y = 0.0;
+  //if(master_grid.worldToMap(point_x, point_y, mx, my)){
+    ////printf("set here");
+    //master_grid.setCost(mx, my, 200);
+  //}
+  getMapCoords(master_grid);
 }
 
-void SimpleShape::getMapCoords(costmap_2d::Costmap2D& master_grid, double x_coord[], double y_coord[]) {
-  unsigned int i_ind, j_ind;
-  return;
-  //for (int i = 0; i < sizeof(master_grid)/sizeof(master_grid[0]); i++) {
-    //IndexToCells(i, &i_ind, &j_ind);
-    //mapToWorld(i_ind, j_ind, x_coord + j_ind, y_coord + i_ind);
-  //}
+void SimpleShape::getMapCoords(costmap_2d::Costmap2D& master_grid) {
+  //return;
+  //for (int i = 0; i < size_y; i++) {
+    //for (int j = 0; j < size_x; j++) {
+  for (int i = 50; i < 300; i++) {
+    for (int j = 50; j < 300; j++) {
+      master_grid.setCost(j, i, std::max(master_grid.getCost(j, i), (unsigned char)200));
+    }
+  }
 }
 
 
