@@ -65,8 +65,8 @@ void GridLayer::updateBounds(double robot_x, double robot_y, double robot_yaw, d
 void GridLayer::updateCosts(costmap_2d::Costmap2D& master_grid, int min_i, int min_j, int max_i,
                                           int max_j)
 {
-  std::cout << "here\n" << std::endl;
-  printf("bounds %i %i %i %i", min_j, max_j, min_i, max_i);
+  //std::cout << "here\n" << std::endl;
+  //printf("bounds %i %i %i %i", min_j, max_j, min_i, max_i);
   if (!enabled_)
     return;
 

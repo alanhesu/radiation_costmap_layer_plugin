@@ -124,6 +124,7 @@ include_directories(
 ## Declare a C++ library
 add_library(${PROJECT_NAME}
   src/grid_layer.cpp
+  src/simple_layer.cpp
 )
 
 ## Add cmake target dependencies of the library
