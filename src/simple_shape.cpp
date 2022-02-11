@@ -20,6 +20,28 @@ void SimpleShape::onInitialize()
   master = layered_costmap_->getCostmap();
   matchSize();
 
+  // set radiation values
+  // TODO: dynamically allocate n number of point_sources
+  double point_sources[3][2] = {{-2.0, -1.5}, {2.0, -2.0}, {90000.0, 30000}};
+  //for (int i = 0; i < size_row; i++) {
+    //rad_arr[i] = (double*)malloc(sizeof(double)*size_col);
+  //}
+  rad_arr = new double*[size_row];
+  for (int i = 0; i < size_row; i++) {
+    rad_arr[i] = new double[size_col];
+  }
+
+  // populate grid with values from point sources
+  for (int i = 0; i < sizeof(point_sources[0])/sizeof(double); i++) {
+    unsigned int ii, jj;
+    worldToMap(point_sources[0][i], point_sources[1][i], ii, jj);
+    printf("%f, %f, %d, %d\n", point_sources[0][i], point_sources[1][i], ii, jj);
+    setRadFieldPoint(point_sources[0][i], point_sources[1][i], point_sources[2][i], rad_arr);
+  }
+
+  // scale grid
+  scaleRadField(minvalRad, maxvalRad, rad_arr);
+
   dsrv_ = new dynamic_reconfigure::Server<costmap_2d::GenericPluginConfig>(nh);
   dynamic_reconfigure::Server<costmap_2d::GenericPluginConfig>::CallbackType cb = boost::bind(
       &SimpleShape::reconfigureCB, this, _1, _2);
@@ -28,9 +50,9 @@ void SimpleShape::onInitialize()
 
 void SimpleShape::matchSize()
 {
-  size_x = master->getSizeInCellsX();
-  size_y = master->getSizeInCellsY();
-  resizeMap(size_x, size_y, master->getResolution(),
+  size_col = master->getSizeInCellsX();
+  size_row = master->getSizeInCellsY();
+  resizeMap(size_col, size_row, master->getResolution(),
             master->getOriginX(), master->getOriginY());
 }
 
@@ -52,10 +74,10 @@ void SimpleShape::updateBounds(double robot_x, double robot_y, double robot_yaw,
   //*min_y = std::min(*min_y, mark_y_);
   //*max_x = std::max(*max_x, mark_x_);
   //*max_y = std::max(*max_y, mark_y_);
-  printf("max %d %d\n", master->getSizeInCellsX(), master->getSizeInCellsY());
+  //printf("max %d %d\n", master->getSizeInCellsX(), master->getSizeInCellsY());
   mapToWorld(0, 0, *min_x, *min_y);
-  mapToWorld(size_x, size_y, *max_x, *max_y);
-  printf("bounds %f %f %f %f\n", *min_x, *max_x, *min_y, *max_y);
+  mapToWorld(size_row, size_col, *max_x, *max_y);
+  //printf("bounds %f %f %f %f\n", *min_x, *max_x, *min_y, *max_y);
 }
 
 void SimpleShape::updateCosts(costmap_2d::Costmap2D& master_grid, int min_i, int min_j, int max_i,
@@ -64,27 +86,57 @@ void SimpleShape::updateCosts(costmap_2d::Costmap2D& master_grid, int min_i, int
   if (!enabled_)
     return;
 
-  //unsigned int mx;
-  //unsigned int my;
-  //double point_x = 0.0;
-  //double point_y = 0.0;
-  //if(master_grid.worldToMap(point_x, point_y, mx, my)){
-    ////printf("set here");
-    //master_grid.setCost(mx, my, 200);
-  //}
-  getMapCoords(master_grid);
+  for (int i = 0; i < size_row; i++) {
+    for (int j = 0; j < size_col; j++) {
+      master_grid.setCost(i, j, std::max(master_grid.getCost(i, j), (unsigned char)rad_arr[i][j]));
+    }
+  }
+  //getMapCoords(master_grid);
 }
 
 void SimpleShape::getMapCoords(costmap_2d::Costmap2D& master_grid) {
-  //return;
-  //for (int i = 0; i < size_y; i++) {
-    //for (int j = 0; j < size_x; j++) {
-  for (int i = 50; i < 300; i++) {
-    for (int j = 50; j < 300; j++) {
-      master_grid.setCost(j, i, std::max(master_grid.getCost(j, i), (unsigned char)200));
+  for (int i = 0; i < 250; i++) {
+    for (int j = 0; j < 200; j++) {
+      master_grid.setCost(i, j, std::max(master_grid.getCost(i, j), (unsigned char)200));
     }
   }
 }
 
+void SimpleShape::setRadFieldPoint(double x, double y, double point_val, double** rad_arr) {
+  // Check if x, y in map
+
+  // iterate through rad_arr and set values
+  for (int i = 0; i < size_row; i++) {
+    for (int j = 0; j < size_col; j++) {
+      double xnew, ynew;
+      mapToWorld(i, j, xnew, ynew);
+      double radius = euclideanDistance(x, y, xnew, ynew);
+      double val = point_val/(pow(radius, 2) + tiny);
+      rad_arr[i][j] += val;
+    }
+  }
+}
+
+void SimpleShape::scaleRadField(double minval, double maxval, double** rad_arr) {
+  double range = maxval - minval;
+  for (int i = 0; i < size_row; i++) {
+    for (int j = 0; j < size_col; j++) {
+      double val = rad_arr[i][j];
+      //val = std::clamp(val, minval, maxval);
+      val = std::max(minval, std::min(val, maxval)); //clamp
+      rad_arr[i][j] = round((val - minval)/(maxval-minval)*250);
+    }
+  }
+}
+
+double SimpleShape::euclideanDistance(double x1, double y1, double x2, double y2) {
+  return sqrt(pow(x2-x1, 2) + pow(y2-y1, 2));
+}
+
+SimpleShape::~SimpleShape() {
+  for (int i = 0; i < size_row; i++) {
+    free(rad_arr[i]);
+  }
+}
 
 } // end namespace
