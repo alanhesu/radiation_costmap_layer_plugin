@@ -22,7 +22,7 @@ void SimpleShape::onInitialize()
 
   // set radiation values
   // TODO: dynamically allocate n number of point_sources
-  double point_sources[3][2] = {{-2.0, -1.5}, {2.0, -2.0}, {90000.0, 30000}};
+  double point_sources[3][2] = {{12.5, 2.5}, {15.5, 1.0}, {900000.0, 00000}};
   //for (int i = 0; i < size_row; i++) {
     //rad_arr[i] = (double*)malloc(sizeof(double)*size_col);
   //}
@@ -35,7 +35,7 @@ void SimpleShape::onInitialize()
   for (int i = 0; i < sizeof(point_sources[0])/sizeof(double); i++) {
     unsigned int ii, jj;
     worldToMap(point_sources[0][i], point_sources[1][i], ii, jj);
-    printf("%f, %f, %d, %d\n", point_sources[0][i], point_sources[1][i], ii, jj);
+    printf("%f, %f, %f, %d, %d\n", point_sources[0][i], point_sources[1][i], point_sources[2][i], ii, jj);
     setRadFieldPoint(point_sources[0][i], point_sources[1][i], point_sources[2][i], rad_arr);
   }
 
@@ -76,8 +76,8 @@ void SimpleShape::updateBounds(double robot_x, double robot_y, double robot_yaw,
   //*max_y = std::max(*max_y, mark_y_);
   //printf("max %d %d\n", master->getSizeInCellsX(), master->getSizeInCellsY());
   mapToWorld(0, 0, *min_x, *min_y);
-  mapToWorld(size_row, size_col, *max_x, *max_y);
-  //printf("bounds %f %f %f %f\n", *min_x, *max_x, *min_y, *max_y);
+  mapToWorld(size_col, size_row, *max_x, *max_y);
+  printf("bounds %f %f %f %f\n", *min_x, *max_x, *min_y, *max_y);
 }
 
 void SimpleShape::updateCosts(costmap_2d::Costmap2D& master_grid, int min_i, int min_j, int max_i,
@@ -88,7 +88,7 @@ void SimpleShape::updateCosts(costmap_2d::Costmap2D& master_grid, int min_i, int
 
   for (int i = 0; i < size_row; i++) {
     for (int j = 0; j < size_col; j++) {
-      master_grid.setCost(i, j, std::max(master_grid.getCost(i, j), (unsigned char)rad_arr[i][j]));
+      master_grid.setCost(j, i, std::max(master_grid.getCost(j, i), (unsigned char)rad_arr[i][j]));
     }
   }
   //getMapCoords(master_grid);
@@ -124,7 +124,7 @@ void SimpleShape::scaleRadField(double minval, double maxval, double** rad_arr) 
       double val = rad_arr[i][j];
       //val = std::clamp(val, minval, maxval);
       val = std::max(minval, std::min(val, maxval)); //clamp
-      rad_arr[i][j] = round((val - minval)/(maxval-minval)*250);
+      rad_arr[i][j] = round((val - minval)/(maxval-minval)*150);
     }
   }
 }
